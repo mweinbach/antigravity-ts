@@ -2,7 +2,7 @@
 
 Source dump: `scratch/python-sdk/antigravity/` (42 `.py` files from `google-antigravity` 0.1.0)
 
-Harness binary: `bin/localharness` (bundled from the `google-antigravity` 0.1.0 macOS arm64 wheel)
+Harness binaries: `vendor/localharness/<platform>/localharness` (synced from the `google-antigravity` 0.1.0 platform wheels via `npm run sync:localharness`)
 
 ## Status: **Full runtime parity** ✅
 

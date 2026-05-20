@@ -3,6 +3,19 @@ import * as path from 'path';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
+function platformKey(): string {
+  const arch = process.arch === 'x64'
+    ? 'x64'
+    : process.arch === 'arm64'
+      ? 'arm64'
+      : process.arch;
+  return `${process.platform}-${arch}`;
+}
+
+function binaryName(): string {
+  return process.platform === 'win32' ? 'localharness.exe' : 'localharness';
+}
+
 /**
  * Resolves the localharness binary path.
  * Mirrors google.antigravity.connections.local.local_connection._get_default_binary_path.
@@ -12,8 +25,10 @@ export function getDefaultHarnessBinaryPath(): string {
     return process.env.ANTIGRAVITY_HARNESS_PATH;
   }
 
+  const platform = platformKey();
+  const binary = binaryName();
   const candidates = [
-    path.resolve(process.cwd(), 'bin/localharness'),
+    path.resolve(process.cwd(), 'vendor/localharness', platform, binary),
     path.resolve(process.cwd(), 'scratch/python-sdk/antigravity/bin/localharness'),
     path.resolve(process.cwd(), 'node_modules/google-antigravity/google/antigravity/bin/localharness'),
   ];
@@ -21,7 +36,7 @@ export function getDefaultHarnessBinaryPath(): string {
   // Relative to this module (works from both src/ and dist/ layouts).
   try {
     const here = path.dirname(fileURLToPath(import.meta.url));
-    candidates.push(path.resolve(here, '../../../bin/localharness'));
+    candidates.push(path.resolve(here, '../../../vendor/localharness', platform, binary));
     candidates.push(path.resolve(here, '../../../scratch/python-sdk/antigravity/bin/localharness'));
   } catch {
     // ignore
@@ -44,6 +59,6 @@ export function getDefaultHarnessBinaryPath(): string {
 
   throw new Error(
     'Could not find default localharness binary. ' +
-    'Set ANTIGRAVITY_HARNESS_PATH, install google-antigravity, or place the binary at scratch/python-sdk/antigravity/bin/localharness.'
+    `Set ANTIGRAVITY_HARNESS_PATH, run \`npm run sync:localharness\`, or install a localharness binary for ${platform}.`
   );
 }

@@ -1,16 +1,17 @@
 {
-  "name": "antigravity-ts",
+  "name": "unofficial-antigravity-sdk",
   "version": "1.0.0",
-  "description": "TypeScript port of the Google Antigravity SDK",
+  "description": "Unofficial TypeScript SDK port for Google Antigravity",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "localharness": "./bin/localharness"
+    "localharness": "./bin/localharness.js"
   },
   "files": [
     "dist",
     "bin",
+    "vendor/localharness",
     "README.md"
   ],
   "exports": {
@@ -22,6 +23,8 @@
   "scripts": {
     "build": "tsc",
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prepack": "npm run sync:localharness && npm run build",
+    "sync:localharness": "node scripts/sync-localharness-runtimes.mjs",
     "test": "node --import tsx --test tests/*.test.ts"
   },
   "dependencies": {

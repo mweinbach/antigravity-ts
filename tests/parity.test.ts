@@ -27,9 +27,9 @@ import { getDefaultHarnessBinaryPath, LocalAgentConfig as LocalAgentConfigFromLo
 import { async_input, run_interactive_loop } from '../src/utils/interactive.js';
 import { on_file_change, trigger } from '../src/triggers/index.js';
 
-test('bundled localharness is resolved from package bin', () => {
+test('bundled localharness is resolved from platform vendor directory', () => {
   const binaryPath = getDefaultHarnessBinaryPath();
-  assert.match(binaryPath, /bin\/localharness$/);
+  assert.match(binaryPath, /vendor\/localharness\/[^/]+\/localharness$/);
   assert.ok(fs.existsSync(binaryPath));
   assert.ok((fs.statSync(binaryPath).mode & 0o111) !== 0);
 });

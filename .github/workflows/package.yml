@@ -1,0 +1,36 @@
+name: package
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - run: npm ci
+
+      - name: Sync localharness runtimes
+        run: npm run sync:localharness
+
+      - run: npm run build
+
+      - run: npm test
+
+      - name: Verify package contents
+        run: npm pack --dry-run
