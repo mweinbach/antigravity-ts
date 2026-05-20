@@ -13,13 +13,15 @@ export function getDefaultHarnessBinaryPath(): string {
   }
 
   const candidates = [
+    path.resolve(process.cwd(), 'bin/localharness'),
     path.resolve(process.cwd(), 'scratch/python-sdk/antigravity/bin/localharness'),
     path.resolve(process.cwd(), 'node_modules/google-antigravity/google/antigravity/bin/localharness'),
   ];
 
-  // Relative to this module (works when running from dist/)
+  // Relative to this module (works from both src/ and dist/ layouts).
   try {
     const here = path.dirname(fileURLToPath(import.meta.url));
+    candidates.push(path.resolve(here, '../../../bin/localharness'));
     candidates.push(path.resolve(here, '../../../scratch/python-sdk/antigravity/bin/localharness'));
   } catch {
     // ignore

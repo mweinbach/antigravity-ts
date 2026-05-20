@@ -1,6 +1,9 @@
 import { ToolCall, HookResult } from '../types.js';
 import * as path from 'path';
 
+export type Predicate = (args?: any, toolCall?: ToolCall) => boolean | Promise<boolean>;
+export type AskUserHandler = (toolCall: ToolCall) => boolean | Promise<boolean>;
+
 export enum Decision {
   APPROVE = 'APPROVE',
   DENY = 'DENY',
@@ -10,8 +13,8 @@ export enum Decision {
 export interface Policy {
   tool: string;
   decision: Decision;
-  when?: (args: any, toolCall?: ToolCall) => boolean | Promise<boolean>;
-  askUser?: (toolCall: ToolCall) => boolean | Promise<boolean>;
+  when?: Predicate;
+  askUser?: AskUserHandler;
   name?: string;
 }
 
@@ -37,7 +40,7 @@ function getBucketIndex(p: Policy): number {
   }
 }
 
-export function allow(tool: string, options?: { when?: (args: any) => boolean | Promise<boolean>; name?: string }): Policy {
+export function allow(tool: string, options?: { when?: Predicate; name?: string }): Policy {
   return {
     tool,
     decision: Decision.APPROVE,
@@ -46,7 +49,7 @@ export function allow(tool: string, options?: { when?: (args: any) => boolean | 
   };
 }
 
-export function deny(tool: string, options?: { when?: (args: any) => boolean | Promise<boolean>; name?: string }): Policy {
+export function deny(tool: string, options?: { when?: Predicate; name?: string }): Policy {
   return {
     tool,
     decision: Decision.DENY,
@@ -55,7 +58,7 @@ export function deny(tool: string, options?: { when?: (args: any) => boolean | P
   };
 }
 
-export function ask_user(tool: string, options: { handler: (toolCall: ToolCall) => boolean | Promise<boolean>; when?: (args: any) => boolean | Promise<boolean>; name?: string }): Policy {
+export function ask_user(tool: string, options: { handler: AskUserHandler; when?: Predicate; name?: string }): Policy {
   return {
     tool,
     decision: Decision.ASK_USER,

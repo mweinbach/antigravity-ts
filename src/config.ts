@@ -42,17 +42,26 @@ export namespace BuiltinTools {
   export function readOnly(): BuiltinTools[] {
     return [BuiltinTools.LIST_DIR, BuiltinTools.SEARCH_DIR, BuiltinTools.FIND_FILE, BuiltinTools.VIEW_FILE, BuiltinTools.FINISH];
   }
+  export function read_only(): BuiltinTools[] {
+    return readOnly();
+  }
   export function nondestructive(): BuiltinTools[] {
     return [...readOnly(), BuiltinTools.CREATE_FILE, BuiltinTools.EDIT_FILE, BuiltinTools.ASK_QUESTION, BuiltinTools.START_SUBAGENT, BuiltinTools.GENERATE_IMAGE];
   }
   export function allTools(): BuiltinTools[] {
     return Object.values(BuiltinTools).filter(v => typeof v === 'string') as BuiltinTools[];
   }
+  export function all_tools(): BuiltinTools[] {
+    return allTools();
+  }
   export function none(): BuiltinTools[] {
     return [];
   }
   export function fileTools(): BuiltinTools[] {
     return [BuiltinTools.VIEW_FILE, BuiltinTools.CREATE_FILE, BuiltinTools.EDIT_FILE];
+  }
+  export function file_tools(): BuiltinTools[] {
+    return fileTools();
   }
 }
 
@@ -69,21 +78,71 @@ export class CapabilitiesConfig {
 
   constructor(options: {
     enableSubagents?: boolean;
+    enable_subagents?: boolean;
     enabledTools?: BuiltinTools[];
+    enabled_tools?: BuiltinTools[];
     disabledTools?: BuiltinTools[];
+    disabled_tools?: BuiltinTools[];
     imageModel?: string;
+    image_model?: string;
     compactionThreshold?: number;
+    compaction_threshold?: number;
     finishToolSchemaJson?: string;
+    finish_tool_schema_json?: string;
   } = {}) {
-    if (options.enabledTools && options.disabledTools) {
+    const enabledTools = options.enabledTools ?? options.enabled_tools;
+    const disabledTools = options.disabledTools ?? options.disabled_tools;
+    if (enabledTools && disabledTools) {
       throw new Error('enabled_tools and disabled_tools should be mutually exclusive.');
     }
-    this.enableSubagents = options.enableSubagents ?? true;
-    this.enabledTools = options.enabledTools;
-    this.disabledTools = options.disabledTools;
-    this.imageModel = options.imageModel ?? 'gemini-3.1-flash-image-preview';
-    this.compactionThreshold = options.compactionThreshold;
-    this.finishToolSchemaJson = options.finishToolSchemaJson;
+    this.enableSubagents = options.enableSubagents ?? options.enable_subagents ?? true;
+    this.enabledTools = enabledTools;
+    this.disabledTools = disabledTools;
+    this.imageModel = options.imageModel ?? options.image_model ?? 'gemini-3.1-flash-image-preview';
+    this.compactionThreshold = options.compactionThreshold ?? options.compaction_threshold;
+    this.finishToolSchemaJson = options.finishToolSchemaJson ?? options.finish_tool_schema_json;
+  }
+
+  get enable_subagents(): boolean {
+    return this.enableSubagents;
+  }
+  set enable_subagents(value: boolean) {
+    this.enableSubagents = value;
+  }
+
+  get enabled_tools(): BuiltinTools[] | undefined {
+    return this.enabledTools;
+  }
+  set enabled_tools(value: BuiltinTools[] | undefined) {
+    this.enabledTools = value;
+  }
+
+  get disabled_tools(): BuiltinTools[] | undefined {
+    return this.disabledTools;
+  }
+  set disabled_tools(value: BuiltinTools[] | undefined) {
+    this.disabledTools = value;
+  }
+
+  get image_model(): string | undefined {
+    return this.imageModel;
+  }
+  set image_model(value: string | undefined) {
+    this.imageModel = value;
+  }
+
+  get compaction_threshold(): number | undefined {
+    return this.compactionThreshold;
+  }
+  set compaction_threshold(value: number | undefined) {
+    this.compactionThreshold = value;
+  }
+
+  get finish_tool_schema_json(): string | undefined {
+    return this.finishToolSchemaJson;
+  }
+  set finish_tool_schema_json(value: string | undefined) {
+    this.finishToolSchemaJson = value;
   }
 }
 
@@ -124,32 +183,88 @@ export abstract class AgentConfig {
 
   constructor(options: {
     systemInstructions?: string | SystemInstructions;
+    system_instructions?: string | SystemInstructions;
     capabilities?: CapabilitiesConfig;
     tools?: any[];
     policies?: any[];
     hooks?: any[];
     triggers?: any[];
     mcpServers?: McpServerConfig[];
+    mcp_servers?: McpServerConfig[];
     workspaces?: string[];
     conversationId?: string;
+    conversation_id?: string;
     saveDir?: string;
+    save_dir?: string;
     appDataDir?: string;
+    app_data_dir?: string;
     responseSchema?: any;
+    response_schema?: any;
     skillsPaths?: string[];
+    skills_paths?: string[];
   } = {}) {
-    this.systemInstructions = options.systemInstructions;
+    this.systemInstructions = options.systemInstructions ?? options.system_instructions;
     this.capabilities = options.capabilities ?? new CapabilitiesConfig({ enabledTools: BuiltinTools.readOnly() });
     this.tools = options.tools ?? [];
     this.policies = options.policies ?? [];
     this.hooks = options.hooks ?? [];
     this.triggers = options.triggers ?? [];
-    this.mcpServers = options.mcpServers ?? [];
+    this.mcpServers = options.mcpServers ?? options.mcp_servers ?? [];
     this.workspaces = options.workspaces ?? [];
-    this.conversationId = options.conversationId;
-    this.saveDir = options.saveDir;
-    this.appDataDir = options.appDataDir;
-    this.responseSchema = options.responseSchema;
-    this.skillsPaths = options.skillsPaths ?? [];
+    this.conversationId = options.conversationId ?? options.conversation_id;
+    this.saveDir = options.saveDir ?? options.save_dir;
+    this.appDataDir = options.appDataDir ?? options.app_data_dir;
+    this.responseSchema = options.responseSchema ?? options.response_schema;
+    this.skillsPaths = options.skillsPaths ?? options.skills_paths ?? [];
+  }
+
+  get system_instructions(): string | SystemInstructions | undefined {
+    return this.systemInstructions;
+  }
+  set system_instructions(value: string | SystemInstructions | undefined) {
+    this.systemInstructions = value;
+  }
+
+  get mcp_servers(): McpServerConfig[] {
+    return this.mcpServers;
+  }
+  set mcp_servers(value: McpServerConfig[]) {
+    this.mcpServers = value;
+  }
+
+  get conversation_id(): string | undefined {
+    return this.conversationId;
+  }
+  set conversation_id(value: string | undefined) {
+    this.conversationId = value;
+  }
+
+  get save_dir(): string | undefined {
+    return this.saveDir;
+  }
+  set save_dir(value: string | undefined) {
+    this.saveDir = value;
+  }
+
+  get app_data_dir(): string | undefined {
+    return this.appDataDir;
+  }
+  set app_data_dir(value: string | undefined) {
+    this.appDataDir = value;
+  }
+
+  get response_schema(): any {
+    return this.responseSchema;
+  }
+  set response_schema(value: any) {
+    this.responseSchema = value;
+  }
+
+  get skills_paths(): string[] {
+    return this.skillsPaths;
+  }
+  set skills_paths(value: string[]) {
+    this.skillsPaths = value;
   }
 }
 
@@ -159,20 +274,29 @@ export abstract class AgentConfig {
 export interface LocalAgentConfigOptions {
   model?: string;
   apiKey?: string;
+  api_key?: string;
   geminiConfig?: GeminiConfig;
+  gemini_config?: GeminiConfig;
   appDataDir?: string;
+  app_data_dir?: string;
   saveDir?: string;
+  save_dir?: string;
   conversationId?: string;
+  conversation_id?: string;
   systemInstructions?: string | SystemInstructions;
+  system_instructions?: string | SystemInstructions;
   tools?: any[];
   capabilities?: CapabilitiesConfig;
   policies?: any[];
   hooks?: any[];
   triggers?: any[];
   responseSchema?: any;
+  response_schema?: any;
   mcpServers?: McpServerConfig[];
+  mcp_servers?: McpServerConfig[];
   workspaces?: string[];
   skillsPaths?: string[];
+  skills_paths?: string[];
 }
 
 /**
@@ -191,45 +315,61 @@ export class LocalAgentConfig extends AgentConfig {
     return this.geminiConfig.models.default.apiKey ?? this.geminiConfig.apiKey ?? process.env.GEMINI_API_KEY;
   }
 
+  get api_key(): string | undefined {
+    return this.apiKey;
+  }
+  set api_key(value: string | undefined) {
+    this.geminiConfig.apiKey = value;
+  }
+
+  get gemini_config(): GeminiConfig {
+    return this.geminiConfig;
+  }
+  set gemini_config(value: GeminiConfig) {
+    this.geminiConfig = value;
+  }
+
   constructor(options: LocalAgentConfigOptions = {}) {
     super({
-      systemInstructions: options.systemInstructions,
+      systemInstructions: options.systemInstructions ?? options.system_instructions,
       capabilities: options.capabilities ?? new CapabilitiesConfig(),
       tools: options.tools,
       policies: options.policies,
       hooks: options.hooks,
       triggers: options.triggers,
-      responseSchema: options.responseSchema,
-      mcpServers: options.mcpServers,
+      responseSchema: options.responseSchema ?? options.response_schema,
+      mcpServers: options.mcpServers ?? options.mcp_servers,
       workspaces: options.workspaces,
-      conversationId: options.conversationId,
-      saveDir: options.saveDir,
-      appDataDir: options.appDataDir,
-      skillsPaths: options.skillsPaths
+      conversationId: options.conversationId ?? options.conversation_id,
+      saveDir: options.saveDir ?? options.save_dir,
+      appDataDir: options.appDataDir ?? options.app_data_dir,
+      skillsPaths: options.skillsPaths ?? options.skills_paths
     });
 
-    this.geminiConfig = options.geminiConfig
-      ? structuredClone(options.geminiConfig)
-      : new GeminiConfig({ apiKey: options.apiKey ?? process.env.GEMINI_API_KEY });
+    const geminiConfig = options.geminiConfig ?? options.gemini_config;
+    const apiKey = options.apiKey ?? options.api_key;
+    this.geminiConfig = geminiConfig
+      ? structuredClone(geminiConfig)
+      : new GeminiConfig({ apiKey: apiKey ?? process.env.GEMINI_API_KEY });
 
     if (options.model) {
-      if (options.geminiConfig?.models?.default) {
+      if (geminiConfig?.models?.default) {
         throw new Error("Cannot set both 'model' shorthand and 'geminiConfig.models.default'. Use one or the other.");
       }
       this.geminiConfig.models.default = new ModelEntry(options.model);
-    } else if (!options.geminiConfig) {
+    } else if (!geminiConfig) {
       this.geminiConfig.models.default = new ModelEntry(options.model ?? DEFAULT_MODEL);
     }
 
-    if (options.apiKey && options.geminiConfig?.apiKey) {
+    if (apiKey && geminiConfig?.apiKey) {
       throw new Error("Cannot set both 'apiKey' shorthand and 'geminiConfig.apiKey'. Use one or the other.");
     }
-    if (options.apiKey) {
-      this.geminiConfig.apiKey = options.apiKey;
+    if (apiKey) {
+      this.geminiConfig.apiKey = apiKey;
     }
 
     // App Data Directory Setup
-    let rawAppDataDir = options.appDataDir;
+    let rawAppDataDir = options.appDataDir ?? options.app_data_dir;
     if (!rawAppDataDir) {
       this.appDataDir = DEFAULT_APP_DATA_DIR;
     } else {
@@ -292,5 +432,9 @@ export class LocalAgentConfig extends AgentConfig {
    */
   createStrategy(toolRunner: ToolRunner, hookRunner: HookRunner): LocalConnectionStrategy {
     return new LocalConnectionStrategy(this, toolRunner, hookRunner);
+  }
+
+  create_strategy(toolRunner: ToolRunner, hookRunner: HookRunner): LocalConnectionStrategy {
+    return this.createStrategy(toolRunner, hookRunner);
   }
 }

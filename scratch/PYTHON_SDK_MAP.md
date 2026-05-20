@@ -2,11 +2,11 @@
 
 Source dump: `scratch/python-sdk/antigravity/` (42 `.py` files from `google-antigravity` 0.1.0)
 
-Harness binary: `scratch/python-sdk/antigravity/bin/localharness`
+Harness binary: `bin/localharness` (bundled from the `google-antigravity` 0.1.0 macOS arm64 wheel)
 
 ## Status: **Full runtime parity** ✅
 
-All 22 non-test Python runtime modules have TypeScript equivalents with snake_case + camelCase API aliases.
+All 22 substantive non-test Python runtime modules have TypeScript equivalents with snake_case + camelCase API aliases where the Python SDK exposes snake_case names.
 
 ## Module mapping
 
@@ -17,8 +17,8 @@ All 22 non-test Python runtime modules have TypeScript equivalents with snake_ca
 | `agent.py` | `src/agent.ts` | ✅ Agent.open/create/run + _config/_hook_runner |
 | `connections/connection.py` | `src/connection.ts` + `config.ts` | ✅ |
 | `connections/local/local_connection_config.py` | `src/config.ts` | ✅ DEFAULT_APP_DATA_DIR |
-| `connections/local/local_connection.py` | `src/connections/local/local_connection.ts` | ✅ |
-| `connections/local/local_connection_step` | `src/connections/local/local_connection_step.ts` | ✅ LocalConnectionStep.fromDict |
+| `connections/local/local_connection.py` | `src/connections/local/local_connection.ts` + `src/connections/local/local_connection_step.ts` + `src/connections/local/harness_binary.ts` | ✅ |
+| `connections/local/test_utils.py` | `src/connections/local/test_utils.ts` | ✅ test harness helpers |
 | `connections/local/types.py` | `src/connections/local/types.ts` | ✅ |
 | `connections/local/localharness_pb2.py` | `src/connections/local/protobuf.ts` | ✅ |
 | `connections/local/__init__.py` | `src/connections/local/index.ts` | ✅ |
@@ -29,7 +29,6 @@ All 22 non-test Python runtime modules have TypeScript equivalents with snake_ca
 | `hooks/__init__.py` | `src/hooks/index.ts` | ✅ |
 | `tools/tool_runner.py` | `src/tools/tool_runner.ts` | ✅ get_public_callable |
 | `tools/tool_context.py` | `src/tools/tool_context.ts` | ✅ get_state/set_state |
-| `tools/custom_tool.py` | `src/tools/custom_tool.ts` | ✅ TS extension |
 | `mcp/bridge.py` | `src/mcp/index.ts` | ✅ get_mcp_tools |
 | `triggers/triggers.py` | `src/triggers/index.ts` | ✅ |
 | `triggers/trigger_runner.py` | `src/triggers/trigger_runner.ts` | ✅ is_running |
@@ -47,7 +46,7 @@ All 22 non-test Python runtime modules have TypeScript equivalents with snake_ca
 
 ## Remaining gap
 
-- **Test suite**: Python has 20 test files; TS has 1 integration test (`tests/agent.test.ts`)
+- **Test suite depth**: Python has 16 `*_test.py` files; TS has the live agent integration tests plus local parity tests. The broad Python unit suite is not fully ported yet.
 
 ## Usage (Python parity)
 

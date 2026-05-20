@@ -6,6 +6,7 @@ export * from './connection.js';
 export * from './conversation.js';
 export * from './tools/index.js';
 export * from './hooks/index.js';
+export * as policy from './hooks/policy.js';
 export * from './triggers/index.js';
 export * from './mcp/index.js';
 export * from './skills/index.js';
@@ -13,7 +14,8 @@ export * from './utils/interactive.js';
 export * from './connections/local/index.js';
 
 export { ToolContext } from './tools/tool_context.js';
-export { ToolRunner, ToolWithSchema, PythonTool } from './tools/tool_runner.js';
+export { ToolRunner, ToolWithSchema } from './tools/tool_runner.js';
+export type { PythonTool } from './tools/tool_runner.js';
 export { defineTool, type ToolDefinition } from './tools/tool_definition.js';
 export { tool, zodTool, toolWithSchema, attachToolSchema, schemaFromZod } from './tools/custom_tool.js';
 export { HookRunner } from './hooks/hook_runner.js';
@@ -87,7 +89,6 @@ export {
   ModelConfig,
   ModelEntry,
   ThinkingLevel,
-  UsageMetadata,
   DEFAULT_MODEL,
   DEFAULT_IMAGE_GENERATION_MODEL,
   SUPPORTED_IMAGE_MIMES,
@@ -97,4 +98,5 @@ export {
   fromFile,
   from_file
 } from './types.js';
+export type { UsageMetadata } from './types.js';
 export { Conversation } from './conversation.js';

@@ -3,17 +3,25 @@ import { AntigravityConnectionError } from './types.js';
 
 export interface Connection {
   isIdle: boolean;
+  is_idle?: boolean;
   conversationId: string;
+  conversation_id?: string;
   send(prompt: any, options?: any): Promise<void>;
   receiveSteps(): AsyncIterable<any> & AsyncIterator<any>;
+  receive_steps?(): AsyncIterable<any> & AsyncIterator<any>;
   disconnect(): Promise<void>;
   cancel(): Promise<void>;
   delete(): Promise<void>;
   signalIdle(): Promise<void>;
+  signal_idle?(): Promise<void>;
   waitForIdle(): Promise<void>;
+  wait_for_idle?(): Promise<void>;
   waitForWakeup(timeout?: number): Promise<boolean>;
+  wait_for_wakeup?(timeout?: number): Promise<boolean>;
   sendToolResults?(results: any[]): Promise<void>;
+  send_tool_results?(results: any[]): Promise<void>;
   sendTriggerNotification?(content: string): Promise<void>;
+  send_trigger_notification?(content: string): Promise<void>;
 }
 
 export interface ConnectionStrategy {

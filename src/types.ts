@@ -13,6 +13,13 @@ export enum ThinkingLevel {
 
 export class GenerationConfig {
   constructor(public thinkingLevel?: ThinkingLevel) {}
+
+  get thinking_level(): ThinkingLevel | undefined {
+    return this.thinkingLevel;
+  }
+  set thinking_level(value: ThinkingLevel | undefined) {
+    this.thinkingLevel = value;
+  }
 }
 
 export class ModelEntry {
@@ -21,6 +28,13 @@ export class ModelEntry {
     public apiKey?: string,
     public generation: GenerationConfig = new GenerationConfig()
   ) {}
+
+  get api_key(): string | undefined {
+    return this.apiKey;
+  }
+  set api_key(value: string | undefined) {
+    this.apiKey = value;
+  }
 
   static from(value: ModelEntry | string): ModelEntry {
     return typeof value === 'string' ? new ModelEntry(value) : value;
@@ -31,9 +45,16 @@ export class ModelConfig {
   public default: ModelEntry;
   public imageGeneration: ModelEntry;
 
-  constructor(options?: { default?: ModelEntry | string; imageGeneration?: ModelEntry | string }) {
+  constructor(options?: { default?: ModelEntry | string; imageGeneration?: ModelEntry | string; image_generation?: ModelEntry | string }) {
     this.default = ModelEntry.from(options?.default ?? DEFAULT_MODEL);
-    this.imageGeneration = ModelEntry.from(options?.imageGeneration ?? DEFAULT_IMAGE_GENERATION_MODEL);
+    this.imageGeneration = ModelEntry.from(options?.imageGeneration ?? options?.image_generation ?? DEFAULT_IMAGE_GENERATION_MODEL);
+  }
+
+  get image_generation(): ModelEntry {
+    return this.imageGeneration;
+  }
+  set image_generation(value: ModelEntry | string) {
+    this.imageGeneration = ModelEntry.from(value);
   }
 }
 
@@ -41,9 +62,16 @@ export class GeminiConfig {
   public apiKey?: string;
   public models: ModelConfig;
 
-  constructor(options?: { apiKey?: string; models?: ModelConfig }) {
-    this.apiKey = options?.apiKey;
+  constructor(options?: { apiKey?: string; api_key?: string; models?: ModelConfig }) {
+    this.apiKey = options?.apiKey ?? options?.api_key;
     this.models = options?.models ?? new ModelConfig();
+  }
+
+  get api_key(): string | undefined {
+    return this.apiKey;
+  }
+  set api_key(value: string | undefined) {
+    this.apiKey = value;
   }
 }
 
@@ -83,9 +111,45 @@ function readFileSafely(filePath: string): Buffer {
 function guessMimeType(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
   const map: Record<string, string> = {
-    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.bmp': 'image/bmp',
-    '.pdf': 'application/pdf', '.txt': 'text/plain', '.html': 'text/html', '.htm': 'text/html', '.json': 'application/json',
-    '.mp3': 'audio/mp3', '.wav': 'audio/wav', '.mp4': 'video/mp4', '.webm': 'video/webm'
+    '.bmp': 'image/bmp',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+    '.pdf': 'application/pdf',
+    '.json': 'application/json',
+    '.css': 'text/css',
+    '.csv': 'text/csv',
+    '.html': 'text/html',
+    '.htm': 'text/html',
+    '.js': 'text/javascript',
+    '.mjs': 'text/javascript',
+    '.txt': 'text/plain',
+    '.rtf': 'text/rtf',
+    '.xml': 'text/xml',
+    '.wav': 'audio/wav',
+    '.mp3': 'audio/mp3',
+    '.aac': 'audio/aac',
+    '.ogg': 'audio/ogg',
+    '.flac': 'audio/flac',
+    '.opus': 'audio/opus',
+    '.mpga': 'audio/mpeg',
+    '.mp2': 'audio/mpeg',
+    '.mp2a': 'audio/mpeg',
+    '.m2a': 'audio/mpeg',
+    '.m3a': 'audio/mpeg',
+    '.m4a': 'audio/m4a',
+    '.l16': 'audio/l16',
+    '.3gp': 'video/3gpp',
+    '.3gpp': 'video/3gpp',
+    '.avi': 'video/avi',
+    '.mp4': 'video/mp4',
+    '.mpeg': 'video/mpeg',
+    '.mpg': 'video/mpg',
+    '.mov': 'video/quicktime',
+    '.webm': 'video/webm',
+    '.wmv': 'video/wmv',
+    '.flv': 'video/x-flv'
   };
   return map[ext] || '';
 }
@@ -96,6 +160,13 @@ abstract class BaseMedia {
     public mimeType: string,
     public description?: string
   ) {}
+
+  get mime_type(): string {
+    return this.mimeType;
+  }
+  set mime_type(value: string) {
+    this.mimeType = value;
+  }
 
   toPart() {
     return {
@@ -122,11 +193,15 @@ export class Image extends BaseMedia {
 
   static fromFile(filePath: string, description?: string): Image {
     const data = readFileSafely(filePath);
-    const mimeType = guessMimeType(filePath) || 'image/png';
+    const mimeType = guessMimeType(filePath);
     if (!SUPPORTED_IMAGE_MIMES.has(mimeType)) {
       throw new Error(`Unsupported Image MIME type: '${mimeType}'`);
     }
     return new Image(mimeType, data, description);
+  }
+
+  static from_file(filePath: string, description?: string): Image {
+    return Image.fromFile(filePath, description);
   }
 }
 
@@ -144,11 +219,15 @@ export class Document extends BaseMedia {
 
   static fromFile(filePath: string, description?: string): Document {
     const data = readFileSafely(filePath);
-    const mimeType = guessMimeType(filePath) || 'application/pdf';
+    const mimeType = guessMimeType(filePath);
     if (!SUPPORTED_DOCUMENT_MIMES.has(mimeType)) {
       throw new Error(`Unsupported Document MIME type: '${mimeType}'`);
     }
     return new Document(mimeType, data, description);
+  }
+
+  static from_file(filePath: string, description?: string): Document {
+    return Document.fromFile(filePath, description);
   }
 }
 
@@ -169,6 +248,10 @@ export class Audio extends BaseMedia {
     }
     return new Audio(mimeType, data, description);
   }
+
+  static from_file(filePath: string, description?: string): Audio {
+    return Audio.fromFile(filePath, description);
+  }
 }
 
 export class Video extends BaseMedia {
@@ -187,6 +270,10 @@ export class Video extends BaseMedia {
       throw new Error(`Unsupported Video MIME type: '${mimeType}'`);
     }
     return new Video(mimeType, data, description);
+  }
+
+  static from_file(filePath: string, description?: string): Video {
+    return Video.fromFile(filePath, description);
   }
 }
 
@@ -228,10 +315,15 @@ export class FileChange {
  */
 export interface UsageMetadata {
   promptTokenCount?: number;
+  prompt_token_count?: number;
   cachedContentTokenCount?: number;
+  cached_content_token_count?: number;
   candidatesTokenCount?: number;
+  candidates_token_count?: number;
   thoughtsTokenCount?: number;
+  thoughts_token_count?: number;
   totalTokenCount?: number;
+  total_token_count?: number;
 }
 
 /**

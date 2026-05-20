@@ -10,7 +10,7 @@ export class ToolContext {
   constructor(private connection: Connection) {}
 
   get conversationId(): string {
-    return this.connection.conversationId;
+    return this.connection.conversationId ?? this.connection.conversation_id ?? '';
   }
 
   /** Python alias */
@@ -19,7 +19,7 @@ export class ToolContext {
   }
 
   get isIdle(): boolean {
-    return this.connection.isIdle;
+    return this.connection.isIdle ?? Boolean(this.connection.is_idle);
   }
 
   /** Python alias */
@@ -28,7 +28,7 @@ export class ToolContext {
   }
 
   async send(message: string): Promise<void> {
-    await this.connection.sendTriggerNotification?.(message);
+    await (this.connection.sendTriggerNotification?.(message) ?? this.connection.send_trigger_notification?.(message));
   }
 
   getState(key: string, defaultValue?: any): any {

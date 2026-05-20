@@ -4,6 +4,10 @@ import { LocalConnectionStrategy } from './connections/local/local_connection.js
 
 const DEFAULT_MAX_HISTORY_SIZE = 10_000;
 
+function connectionIsIdle(conn: Connection): boolean {
+  return conn.isIdle ?? Boolean(conn.is_idle);
+}
+
 function zeroUsage(): UsageMetadata {
   return {
     promptTokenCount: 0,
@@ -15,11 +19,11 @@ function zeroUsage(): UsageMetadata {
 }
 
 function addUsage(target: UsageMetadata, source: UsageMetadata): void {
-  target.promptTokenCount = (target.promptTokenCount ?? 0) + (source.promptTokenCount ?? 0);
-  target.cachedContentTokenCount = (target.cachedContentTokenCount ?? 0) + (source.cachedContentTokenCount ?? 0);
-  target.candidatesTokenCount = (target.candidatesTokenCount ?? 0) + (source.candidatesTokenCount ?? 0);
-  target.thoughtsTokenCount = (target.thoughtsTokenCount ?? 0) + (source.thoughtsTokenCount ?? 0);
-  target.totalTokenCount = (target.totalTokenCount ?? 0) + (source.totalTokenCount ?? 0);
+  target.promptTokenCount = (target.promptTokenCount ?? 0) + (source.promptTokenCount ?? source.prompt_token_count ?? 0);
+  target.cachedContentTokenCount = (target.cachedContentTokenCount ?? 0) + (source.cachedContentTokenCount ?? source.cached_content_token_count ?? 0);
+  target.candidatesTokenCount = (target.candidatesTokenCount ?? 0) + (source.candidatesTokenCount ?? source.candidates_token_count ?? 0);
+  target.thoughtsTokenCount = (target.thoughtsTokenCount ?? 0) + (source.thoughtsTokenCount ?? source.thoughts_token_count ?? 0);
+  target.totalTokenCount = (target.totalTokenCount ?? 0) + (source.totalTokenCount ?? source.total_token_count ?? 0);
 }
 
 export class Conversation {
@@ -112,7 +116,7 @@ export class Conversation {
   }
 
   get isIdle(): boolean {
-    return this._connection.isIdle;
+    return connectionIsIdle(this._connection);
   }
 
   /** Python alias */
@@ -121,7 +125,7 @@ export class Conversation {
   }
 
   get conversationId(): string {
-    return this._connection.conversationId;
+    return this._connection.conversationId ?? this._connection.conversation_id ?? '';
   }
 
   /** Python alias */
@@ -197,7 +201,7 @@ export class Conversation {
   }
 
   async send(prompt: any, options?: any): Promise<void> {
-    if (!this._connection.isIdle) {
+    if (!connectionIsIdle(this._connection)) {
       try {
         const iter = this.receiveSteps();
         while (true) {
@@ -215,7 +219,7 @@ export class Conversation {
   }
 
   async *receiveSteps(): AsyncGenerator<Step, void, unknown> {
-    const stream = this._connection.receiveSteps();
+    const stream = this._connection.receiveSteps?.() ?? this._connection.receive_steps!();
     for await (const step of stream) {
       this._steps.push(step);
       if (step.type === StepType.COMPACTION) {
@@ -286,7 +290,7 @@ export class Conversation {
   }
 
   async signalIdle(): Promise<void> {
-    await this._connection.signalIdle();
+    await (this._connection.signalIdle?.() ?? this._connection.signal_idle!());
   }
 
   /** Python alias */
@@ -295,7 +299,7 @@ export class Conversation {
   }
 
   async waitForIdle(): Promise<void> {
-    await this._connection.waitForIdle();
+    await (this._connection.waitForIdle?.() ?? this._connection.wait_for_idle!());
   }
 
   /** Python alias */
@@ -304,7 +308,7 @@ export class Conversation {
   }
 
   async waitForWakeup(timeout?: number): Promise<boolean> {
-    return await this._connection.waitForWakeup(timeout);
+    return await (this._connection.waitForWakeup?.(timeout) ?? this._connection.wait_for_wakeup!(timeout));
   }
 
   /** Python alias */

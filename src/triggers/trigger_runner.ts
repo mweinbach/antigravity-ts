@@ -26,7 +26,7 @@ export class TriggerRunner {
     for (const trigger of this.triggers) {
       const ctx: TriggerContext = {
         send: async (content: string) => {
-          await this.connection.sendTriggerNotification?.(content);
+          await (this.connection.sendTriggerNotification?.(content) ?? this.connection.send_trigger_notification?.(content));
         }
       };
       const ac = new AbortController();

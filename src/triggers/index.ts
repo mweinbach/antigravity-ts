@@ -12,13 +12,14 @@ export type Trigger = (ctx: TriggerContext) => Promise<void>;
  * Validates and marks a function as a Trigger (mirrors Python @trigger decorator).
  */
 export function trigger(fn: Trigger): Trigger {
-  if (fn.constructor.name === 'AsyncFunction' || fn.length !== 1) {
-    // Best-effort validation — TS cannot inspect coroutine as reliably as Python
-    if (fn.length !== 1) {
-      throw new Error('Trigger must accept exactly one parameter (TriggerContext).');
-    }
+  if (fn.constructor.name !== 'AsyncFunction') {
+    throw new Error('Trigger must be an async function.');
+  }
+  if (fn.length !== 1) {
+    throw new Error('Trigger must accept exactly one parameter (TriggerContext).');
   }
   (fn as any).__isTrigger = true;
+  (fn as any).__is_trigger__ = true;
   return fn;
 }
 
@@ -80,6 +81,8 @@ export function onFileChange(
     });
   });
 }
+
+export const on_file_change = onFileChange;
 
 /** Legacy object-style trigger helpers */
 export const triggerHelpers = {

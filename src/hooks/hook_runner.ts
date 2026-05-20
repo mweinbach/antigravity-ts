@@ -105,6 +105,10 @@ export class HookRunner {
     );
   }
 
+  get has_hooks(): boolean {
+    return this.hasHooks;
+  }
+
   get preToolCallDecideHookCount(): number {
     return this._preToolCallDecideHooks.length;
   }
@@ -233,6 +237,10 @@ export class HookRunner {
     }
   }
 
+  register_hook(hook: HookLike | PreToolCallDecideHook): void {
+    return this.registerHook(hook);
+  }
+
   replacePolicyEnforceHook(newHook: PreToolCallDecideHook, isPolicyHook: (h: PreToolCallDecideHook) => boolean): boolean {
     for (let i = 0; i < this._preToolCallDecideHooks.length; i++) {
       if (isPolicyHook(this._preToolCallDecideHooks[i])) {
@@ -302,10 +310,18 @@ export class HookRunner {
     }
   }
 
+  async dispatch_session_start(): Promise<void> {
+    return this.dispatchSessionStart();
+  }
+
   async dispatchSessionEnd(): Promise<void> {
     for (const hook of this._onSessionEndHooks) {
       await hook.run(this.sessionContext, null);
     }
+  }
+
+  async dispatch_session_end(): Promise<void> {
+    return this.dispatchSessionEnd();
   }
 
   async dispatchPreTurn(prompt: any): Promise<{ result: HookResult; turnContext: TurnContext }> {
@@ -320,10 +336,18 @@ export class HookRunner {
     return { result: { allow: true }, turnContext };
   }
 
+  async dispatch_pre_turn(prompt: any): Promise<{ result: HookResult; turnContext: TurnContext }> {
+    return this.dispatchPreTurn(prompt);
+  }
+
   async dispatchPostTurn(turnContext: TurnContext, response: string): Promise<void> {
     for (const hook of this._postTurnHooks) {
       await hook.run(turnContext, response);
     }
+  }
+
+  async dispatch_post_turn(turnContext: TurnContext, response: string): Promise<void> {
+    return this.dispatchPostTurn(turnContext, response);
   }
 
   async dispatchPreToolCall(
@@ -340,10 +364,21 @@ export class HookRunner {
     return { result: { allow: true }, toolCall, opContext };
   }
 
+  async dispatch_pre_tool_call(
+    turnContext: TurnContext,
+    toolCall: ToolCall
+  ): Promise<{ result: HookResult; toolCall: ToolCall; opContext: OperationContext }> {
+    return this.dispatchPreToolCall(turnContext, toolCall);
+  }
+
   async dispatchPostToolCall(opContext: OperationContext, result: any): Promise<void> {
     for (const hook of this._postToolCallHooks) {
       await hook.run(opContext, result);
     }
+  }
+
+  async dispatch_post_tool_call(opContext: OperationContext, result: any): Promise<void> {
+    return this.dispatchPostToolCall(opContext, result);
   }
 
   async dispatchOnToolError(opContext: OperationContext, error: Error): Promise<{ result: HookResult; recovery: any }> {
@@ -361,6 +396,10 @@ export class HookRunner {
       }
     }
     return { result: { allow: false }, recovery: null };
+  }
+
+  async dispatch_on_tool_error(opContext: OperationContext, error: Error): Promise<{ result: HookResult; recovery: any }> {
+    return this.dispatchOnToolError(opContext, error);
   }
 
   async dispatchInteraction(
@@ -381,10 +420,21 @@ export class HookRunner {
     };
   }
 
+  async dispatch_interaction(
+    turnContext: TurnContext,
+    interactionSpec: AskQuestionInteractionSpec
+  ): Promise<{ result: HookResult; response: QuestionHookResult | null; opContext: OperationContext }> {
+    return this.dispatchInteraction(turnContext, interactionSpec);
+  }
+
   async dispatchCompaction(turnContext: TurnContext, data: any): Promise<void> {
     const opContext = new OperationContext(turnContext);
     for (const hook of this._onCompactionHooks) {
       await hook.run(opContext, data);
     }
+  }
+
+  async dispatch_compaction(turnContext: TurnContext, data: any): Promise<void> {
+    return this.dispatchCompaction(turnContext, data);
   }
 }

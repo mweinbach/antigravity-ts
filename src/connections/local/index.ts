@@ -2,6 +2,7 @@ export {
   LocalConnection,
   LocalConnectionStrategy
 } from './local_connection.js';
+export { LocalAgentConfig } from '../../config.js';
 export {
   LocalConnectionStepImpl,
   LocalConnectionStep,
@@ -13,4 +14,5 @@ export {
   type LocalConnectionStep as LocalConnectionStepType
 } from './local_connection_step.js';
 export * from './types.js';
+export * from './test_utils.js';
 export { getDefaultHarnessBinaryPath } from './harness_binary.js';

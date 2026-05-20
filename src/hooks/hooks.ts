@@ -9,12 +9,12 @@ import {
   HookContext,
   SessionContext,
   TurnContext,
-  OperationContext,
-  PreToolCallDecideHook,
-  HookKind
+  OperationContext
 } from './hook_runner.js';
+import type { PreToolCallDecideHook, HookKind } from './hook_runner.js';
 
-export { HookContext, SessionContext, TurnContext, OperationContext, HookKind };
+export { HookContext, SessionContext, TurnContext, OperationContext };
+export type { HookKind };
 
 /** Read-only, non-blocking hook for observability (Python InspectHook). */
 export abstract class InspectHook<T> {

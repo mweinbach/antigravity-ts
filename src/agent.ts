@@ -134,11 +134,19 @@ export class Agent {
     this.hookRunner.registerHook(hook);
   }
 
+  register_hook(hook: any) {
+    return this.registerHook(hook);
+  }
+
   registerTrigger(trigger: Trigger) {
     if (this.isConnected) {
       throw new Error('Cannot register triggers after the agent has started.');
     }
     this.pendingTriggers.push(trigger);
+  }
+
+  register_trigger(trigger: Trigger) {
+    return this.registerTrigger(trigger);
   }
 
   async start() {

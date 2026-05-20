@@ -23,7 +23,9 @@ if (!process.env.GEMINI_API_KEY) {
   }
 }
 
-test('Agent lifecycle and connection handshake', async (t) => {
+const runLiveAgentTests = Boolean(process.env.GEMINI_API_KEY) && process.env.RUN_LIVE_ANTIGRAVITY_TESTS === '1';
+
+test('Agent lifecycle and connection handshake', { skip: !runLiveAgentTests }, async (t) => {
   const saveDir = path.resolve('temp_test_session');
   if (fs.existsSync(saveDir)) {
     fs.rmSync(saveDir, { recursive: true, force: true });
@@ -86,7 +88,7 @@ test('Agent lifecycle and connection handshake', async (t) => {
   });
 });
 
-test('Agent policy engine evaluation', async (t) => {
+test('Agent policy engine evaluation', { skip: !runLiveAgentTests }, async (t) => {
   const saveDir = path.resolve('temp_policy_test');
   if (fs.existsSync(saveDir)) {
     fs.rmSync(saveDir, { recursive: true, force: true });

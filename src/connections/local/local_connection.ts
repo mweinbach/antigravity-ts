@@ -97,8 +97,16 @@ export class LocalConnection implements Connection {
     return this._isIdle;
   }
 
+  get is_idle(): boolean {
+    return this.isIdle;
+  }
+
   get conversationId(): string {
     return this.cascadeId || '';
+  }
+
+  get conversation_id(): string {
+    return this.conversationId;
   }
 
   private setIdle(idle: boolean) {
@@ -120,13 +128,25 @@ export class LocalConnection implements Connection {
     await this.isIdlePromise;
   }
 
+  async wait_for_idle(): Promise<void> {
+    return this.waitForIdle();
+  }
+
   async waitForWakeup(timeout: number = 300): Promise<boolean> {
     // Harness events are processed reactively
     return false;
   }
 
+  async wait_for_wakeup(timeout: number = 300): Promise<boolean> {
+    return this.waitForWakeup(timeout);
+  }
+
   async signalIdle(): Promise<void> {
     this.setIdle(true);
+  }
+
+  async signal_idle(): Promise<void> {
+    return this.signalIdle();
   }
 
   private getTurnContext(): TurnContext {
@@ -321,6 +341,10 @@ export class LocalConnection implements Connection {
     } finally {
       this.isReceiving = false;
     }
+  }
+
+  receive_steps(): AsyncIterable<Step> & AsyncIterator<Step> {
+    return this.receiveSteps();
   }
 
   private async wsReaderLoop() {
@@ -710,10 +734,18 @@ export class LocalConnection implements Connection {
     }
   }
 
+  async send_tool_results(results: ToolResult[]): Promise<void> {
+    return this.sendToolResults(results);
+  }
+
   async sendTriggerNotification(content: string): Promise<void> {
     this.ws.send(JSON.stringify({
       automated_trigger: content
     }));
+  }
+
+  async send_trigger_notification(content: string): Promise<void> {
+    return this.sendTriggerNotification(content);
   }
 }
 
@@ -921,5 +953,13 @@ export class LocalConnectionStrategy implements ConnectionStrategy {
       await this.connection.disconnect();
       this.connection = undefined;
     }
+  }
+
+  async __aenter__(): Promise<void> {
+    await this.start();
+  }
+
+  async __aexit__(_excType?: unknown, _excVal?: unknown, _excTb?: unknown): Promise<void> {
+    await this[Symbol.asyncDispose]();
   }
 }

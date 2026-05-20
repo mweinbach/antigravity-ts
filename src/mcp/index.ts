@@ -76,11 +76,19 @@ export class McpBridge {
     await this.connectTransport(transport);
   }
 
+  async connect_stdio(command: string, args: string[] = []): Promise<void> {
+    return this.connectStdio(command, args);
+  }
+
   async connectSse(url: string, headers?: Record<string, string>): Promise<void> {
     const transport = new SSEClientTransport(new URL(url), {
       eventSourceInit: headers ? { headers } as any : undefined
     });
     await this.connectTransport(transport);
+  }
+
+  async connect_sse(url: string, headers?: Record<string, string>): Promise<void> {
+    return this.connectSse(url, headers);
   }
 
   async connectStreamableHttp(
@@ -100,6 +108,16 @@ export class McpBridge {
       }
     });
     await this.connectTransport(transport);
+  }
+
+  async connect_streamable_http(
+    url: string,
+    headers?: Record<string, string>,
+    timeout = 30,
+    sseReadTimeout = 300,
+    terminateOnClose = true
+  ): Promise<void> {
+    return this.connectStreamableHttp(url, headers, timeout, sseReadTimeout, terminateOnClose);
   }
 
   private async connectTransport(transport: any): Promise<void> {

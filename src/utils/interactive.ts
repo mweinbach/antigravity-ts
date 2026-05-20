@@ -24,6 +24,8 @@ export async function asyncInput(prompt: string = ''): Promise<string> {
   });
 }
 
+export const async_input = asyncInput;
+
 export class ToolConfirmationHook implements Hook {
   async preToolCallDecide(ctx: AgentHookContext, data: ToolCall): Promise<HookResult> {
     console.log(`\nTool execution requested: ${data.name}`);
@@ -192,3 +194,5 @@ export async function runInteractiveLoop(agent: Agent): Promise<void> {
     }
   }
 }
+
+export const run_interactive_loop = runInteractiveLoop;

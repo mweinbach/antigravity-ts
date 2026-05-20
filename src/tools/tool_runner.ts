@@ -26,6 +26,18 @@ export class ToolWithSchema {
     this.description = (fn as any).description || fn.name;
   }
 
+  get __name__(): string {
+    return this.name;
+  }
+
+  get __doc__(): string {
+    return this.description;
+  }
+
+  get input_schema(): Record<string, any> {
+    return this.inputSchema;
+  }
+
   async call(args: Record<string, any>, ctx?: ToolContext): Promise<any> {
     return await this.fn(args, ctx);
   }
@@ -50,6 +62,10 @@ export class ToolRunner {
 
   setContext(ctx: ToolContext): void {
     this.context = ctx;
+  }
+
+  set_context(ctx: ToolContext): void {
+    this.setContext(ctx);
   }
 
   register(tool: RegisteredTool, name?: string): void {
