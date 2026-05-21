@@ -15,4 +15,9 @@ export {
 } from './local_connection_step.js';
 export * from './types.js';
 export * from './test_utils.js';
-export { getDefaultHarnessBinaryPath } from './harness_binary.js';
+export {
+  getBundledHarnessBinaryPath,
+  getCurrentPlatformKey,
+  getDefaultHarnessBinaryPath,
+  getHarnessBinaryName
+} from './harness_binary.js';

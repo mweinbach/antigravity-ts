@@ -20,3 +20,6 @@ npm run sync:localharness
 
 CI runs the same sync step before build, tests, and package verification.
 
+The `localharness` executable is authored in TypeScript under `src/bin/` and
+emitted into `dist/bin/` during `npm run build`, so published packages do not
+need a separate handwritten JavaScript wrapper.

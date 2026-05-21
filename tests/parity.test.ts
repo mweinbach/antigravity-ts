@@ -23,15 +23,24 @@ import {
   from_file,
   policy
 } from '../src/index.js';
-import { getDefaultHarnessBinaryPath, LocalAgentConfig as LocalAgentConfigFromLocal, TestLocalHarness, TestWebSocket } from '../src/connections/local/index.js';
+import {
+  getBundledHarnessBinaryPath,
+  getCurrentPlatformKey,
+  getDefaultHarnessBinaryPath,
+  LocalAgentConfig as LocalAgentConfigFromLocal,
+  TestLocalHarness,
+  TestWebSocket
+} from '../src/connections/local/index.js';
 import { async_input, run_interactive_loop } from '../src/utils/interactive.js';
 import { on_file_change, trigger } from '../src/triggers/index.js';
 
 test('bundled localharness is resolved from platform vendor directory', () => {
-  const binaryPath = getDefaultHarnessBinaryPath();
+  const binaryPath = getBundledHarnessBinaryPath();
   assert.match(binaryPath, /vendor\/localharness\/[^/]+\/localharness$/);
   assert.ok(fs.existsSync(binaryPath));
   assert.ok((fs.statSync(binaryPath).mode & 0o111) !== 0);
+  assert.equal(getDefaultHarnessBinaryPath({ env: {}, includePathFallback: false }), binaryPath);
+  assert.match(getCurrentPlatformKey(), /^[^-]+-(arm64|x64)$/);
 });
 
 test('bundled localharness can be invoked as a CLI binary', () => {
