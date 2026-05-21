@@ -1,6 +1,6 @@
 {
   "name": "unofficial-antigravity-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Unofficial TypeScript SDK port for Google Antigravity",
   "type": "module",
   "main": "./dist/index.js",
