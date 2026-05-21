@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -9,6 +10,7 @@ import {
   Audio,
   BuiltinTools,
   CapabilitiesConfig,
+  Conversation,
   Document,
   GeminiConfig,
   GenerationConfig,
@@ -20,6 +22,8 @@ import {
   ModelEntry,
   ToolRunner,
   Video,
+  Text,
+  Thought,
   from_file,
   policy
 } from '../src/index.js';
@@ -33,6 +37,17 @@ import {
 } from '../src/connections/local/index.js';
 import { async_input, run_interactive_loop } from '../src/utils/interactive.js';
 import { on_file_change, trigger } from '../src/triggers/index.js';
+
+function createTestHarnessProcess(): any {
+  const process = new EventEmitter() as any;
+  process.stderr = new EventEmitter();
+  process.stdin = { end() {} };
+  process.kill = () => {
+    process.emit('exit');
+    return true;
+  };
+  return process;
+}
 
 test('bundled localharness is resolved from platform vendor directory', () => {
   const binaryPath = getBundledHarnessBinaryPath();
@@ -54,6 +69,55 @@ test('root and subpackage exports match Python-style import paths', () => {
   assert.equal(LocalAgentConfigFromLocal, LocalAgentConfig);
   assert.equal(typeof TestWebSocket, 'function');
   assert.equal(typeof TestLocalHarness, 'function');
+});
+
+test('local harness lower-camel stream events produce chunks and idle', async () => {
+  const harness = new TestLocalHarness(createTestHarnessProcess());
+  const conversation = new Conversation(harness.conn);
+  await conversation.send('prompt');
+  const chunksPromise = (async () => {
+    const chunks: unknown[] = [];
+    for await (const chunk of conversation.receiveChunks()) {
+      chunks.push(chunk);
+    }
+    return chunks;
+  })();
+
+  await harness.sendEvent({
+    stepUpdate: {
+      cascadeId: 'traj-1',
+      trajectoryId: 'traj-1',
+      stepIndex: 1,
+      state: 'STATE_ACTIVE',
+      source: 'SOURCE_MODEL',
+      target: 'TARGET_USER',
+      thinking: 'thinking',
+      thinkingDelta: 'thinking',
+      text: 'answer',
+      textDelta: 'answer'
+    },
+    usageMetadata: {
+      promptTokenCount: 10,
+      cachedContentTokenCount: 0,
+      candidatesTokenCount: 2,
+      thoughtsTokenCount: 1,
+      totalTokenCount: 13
+    }
+  });
+  await harness.sendEvent({
+    trajectoryStateUpdate: {
+      trajectoryId: 'traj-1',
+      state: 'STATE_IDLE'
+    }
+  });
+
+  const chunks = await chunksPromise;
+  assert.equal(chunks.length, 2);
+  assert.ok(chunks[0] instanceof Thought);
+  assert.equal((chunks[0] as Thought).text, 'thinking');
+  assert.ok(chunks[1] instanceof Text);
+  assert.equal((chunks[1] as Text).text, 'answer');
+  assert.equal(harness.conn.isIdle, true);
 });
 
 test('Python-style aliases are available on public APIs', async () => {

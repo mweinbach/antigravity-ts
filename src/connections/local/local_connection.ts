@@ -64,6 +64,32 @@ const STATUS_MAP: Record<string, StepStatus> = {
 
 const IDLE_SENTINEL = Symbol('IDLE_SENTINEL');
 
+function toSnakeCaseKey(key: string): string {
+  return key.replace(/[A-Z]/g, (match) => `_${match.toLowerCase()}`);
+}
+
+function normalizeWireEvent(value: any): any {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeWireEvent(item));
+  }
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  const normalized: Record<string, any> = {};
+  for (const [key, child] of Object.entries(value)) {
+    const normalizedKey = toSnakeCaseKey(key);
+    if (
+      normalizedKey !== key &&
+      Object.prototype.hasOwnProperty.call(normalized, normalizedKey)
+    ) {
+      continue;
+    }
+    normalized[normalizedKey] = normalizeWireEvent(child);
+  }
+  return normalized;
+}
+
 export class LocalConnection implements Connection {
   public stepQueue = new AsyncQueue<Step | typeof IDLE_SENTINEL | Error>();
   private stepTrackers = new Map<string, StepTracker>();
@@ -373,7 +399,9 @@ export class LocalConnection implements Connection {
     };
   }
 
-  private async handleOutputEvent(event: any) {
+  private async handleOutputEvent(rawEvent: any) {
+    const event = normalizeWireEvent(rawEvent);
+
     if (event.step_update) {
       const su = event.step_update;
       const trajectoryId = su.trajectory_id || '';
