@@ -25,10 +25,12 @@
   },
   "scripts": {
     "build": "tsc",
-    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "clean": "tsx scripts/clean.ts",
     "prepack": "npm run sync:localharness && npm run build",
-    "sync:localharness": "node scripts/sync-localharness-runtimes.mjs",
-    "test": "node --import tsx --test tests/*.test.ts"
+    "sync:localharness": "tsx scripts/sync-localharness-runtimes.ts",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.scripts.json",
+    "verify-release-version": "tsx scripts/verify-release-version.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

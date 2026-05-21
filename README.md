@@ -23,3 +23,6 @@ CI runs the same sync step before build, tests, and package verification.
 The `localharness` executable is authored in TypeScript under `src/bin/` and
 emitted into `dist/bin/` during `npm run build`, so published packages do not
 need a separate handwritten JavaScript wrapper.
+
+Repo tooling is TypeScript-authored as well; maintenance commands live under
+`scripts/*.ts` and run through `tsx`.

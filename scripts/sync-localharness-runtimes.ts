@@ -1,20 +1,60 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const PYPI_PACKAGE = 'google-antigravity';
 const DEFAULT_VERSION = '0.1.0';
 const WHEEL_BINARY_PATH = 'google/antigravity/bin/localharness';
 
+interface PyPiFile {
+  filename: string;
+  packagetype: string;
+  url: string;
+  digests?: {
+    sha256?: string;
+  };
+}
+
+interface PyPiMetadata {
+  urls: PyPiFile[];
+}
+
+interface WheelPlatformPattern {
+  pattern: RegExp;
+  platform?: string;
+  platforms?: string[];
+}
+
+interface SupportedWheel extends PyPiFile {
+  platforms: string[];
+}
+
+interface SpawnResult {
+  status: number | null;
+  stdout: string;
+  stderr: string;
+}
+
+interface RuntimeManifest {
+  source: string;
+  version: string;
+  generatedAt: string;
+  runtimes: Record<string, {
+    filename: string;
+    wheelSha256: string;
+    binary: string;
+  }>;
+}
+
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const version = process.env.GOOGLE_ANTIGRAVITY_VERSION || DEFAULT_VERSION;
 const outDir = path.join(rootDir, 'vendor', 'localharness');
 
-const WHEEL_PLATFORM_PATTERNS = [
+const WHEEL_PLATFORM_PATTERNS: WheelPlatformPattern[] = [
   { pattern: /macosx_[^/]+_arm64\.whl$/, platform: 'darwin-arm64' },
   { pattern: /macosx_[^/]+_(x86_64|amd64)\.whl$/, platform: 'darwin-x64' },
   { pattern: /macosx_[^/]+_universal2\.whl$/, platforms: ['darwin-arm64', 'darwin-x64'] },
@@ -24,21 +64,23 @@ const WHEEL_PLATFORM_PATTERNS = [
   { pattern: /win_arm64\.whl$/, platform: 'win32-arm64' }
 ];
 
-function platformsFromWheel(filename) {
+function platformsFromWheel(filename: string): string[] {
   const match = WHEEL_PLATFORM_PATTERNS.find(({ pattern }) => pattern.test(filename));
-  if (!match) return [];
-  return match.platforms ?? [match.platform];
+  if (!match) {
+    return [];
+  }
+  return match.platforms ?? (match.platform ? [match.platform] : []);
 }
 
-async function fetchJson(url) {
+async function fetchJson(url: string): Promise<PyPiMetadata> {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
   }
-  return response.json();
+  return response.json() as Promise<PyPiMetadata>;
 }
 
-async function download(url, destination) {
+async function download(url: string, destination: string): Promise<Buffer> {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`);
@@ -48,17 +90,23 @@ async function download(url, destination) {
   return bytes;
 }
 
-function spawnForOutput(command, args) {
+function spawnForOutput(command: string, args: string[]): Promise<SpawnResult> {
   const chunks = { stdout: '', stderr: '' };
   const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
   return new Promise((resolve) => {
-    child.stdout?.on('data', (data) => { chunks.stdout += data.toString('utf8'); });
-    child.stderr?.on('data', (data) => { chunks.stderr += data.toString('utf8'); });
-    child.on('close', (status) => resolve({ status, ...chunks }));
+    child.stdout?.on('data', (data: Buffer) => {
+      chunks.stdout += data.toString('utf8');
+    });
+    child.stderr?.on('data', (data: Buffer) => {
+      chunks.stderr += data.toString('utf8');
+    });
+    child.on('close', (status) => {
+      resolve({ status, ...chunks });
+    });
   });
 }
 
-async function extractWheel(wheelPath, destination) {
+async function extractWheel(wheelPath: string, destination: string): Promise<void> {
   const script = [
     'import pathlib, stat, sys, zipfile',
     'wheel = pathlib.Path(sys.argv[1])',
@@ -78,9 +126,9 @@ async function extractWheel(wheelPath, destination) {
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   const metadata = await fetchJson(`https://pypi.org/pypi/${PYPI_PACKAGE}/${version}/json`);
-  const wheels = metadata.urls
+  const wheels: SupportedWheel[] = metadata.urls
     .filter((file) => file.packagetype === 'bdist_wheel')
     .map((file) => ({ ...file, platforms: platformsFromWheel(file.filename) }))
     .filter((file) => file.platforms.length > 0);
@@ -90,7 +138,7 @@ async function main() {
   }
 
   const tmp = await mkdtemp(path.join(tmpdir(), 'antigravity-localharness-'));
-  const manifest = {
+  const manifest: RuntimeManifest = {
     source: PYPI_PACKAGE,
     version,
     generatedAt: new Date().toISOString(),
@@ -130,7 +178,7 @@ async function main() {
   }
 }
 
-main().catch((error) => {
+main().catch((error: unknown) => {
   console.error(error);
   process.exitCode = 1;
 });
