@@ -31,6 +31,8 @@ import {
   getBundledHarnessBinaryPath,
   getCurrentPlatformKey,
   getDefaultHarnessBinaryPath,
+  getHarnessBinaryName,
+  getPlatformKey,
   LocalAgentConfig as LocalAgentConfigFromLocal,
   TestLocalHarness,
   TestWebSocket
@@ -49,16 +51,67 @@ function createTestHarnessProcess(): any {
   return process;
 }
 
-test('bundled localharness is resolved from platform vendor directory', () => {
-  const binaryPath = getBundledHarnessBinaryPath();
-  assert.match(binaryPath, /vendor\/localharness\/[^/]+\/localharness$/);
-  assert.ok(fs.existsSync(binaryPath));
-  assert.ok((fs.statSync(binaryPath).mode & 0o111) !== 0);
-  assert.equal(getDefaultHarnessBinaryPath({ env: {}, includePathFallback: false }), binaryPath);
+function hasBundledHarnessRuntime(): boolean {
+  try {
+    getBundledHarnessBinaryPath();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+test('platform keys and binary names include Windows runtimes', () => {
+  assert.equal(getPlatformKey('win32', 'x64'), 'win32-x64');
+  assert.equal(getPlatformKey('win32', 'arm64'), 'win32-arm64');
+  assert.equal(getPlatformKey('linux', 'x64'), 'linux-x64');
+  assert.equal(getPlatformKey('darwin', 'arm64'), 'darwin-arm64');
+  assert.equal(getHarnessBinaryName('win32'), 'localharness.exe');
+  assert.equal(getHarnessBinaryName('linux'), 'localharness');
+  assert.equal(getHarnessBinaryName('darwin'), 'localharness');
   assert.match(getCurrentPlatformKey(), /^[^-]+-(arm64|x64)$/);
 });
 
-test('bundled localharness can be invoked as a CLI binary', () => {
+test('Windows localharness is resolved from bundled and development locations', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-win-harness-'));
+  const platformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform');
+
+  try {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const windowsPlatform = getPlatformKey('win32');
+
+    const bundled = path.join(dir, 'vendor', 'localharness', windowsPlatform, 'localharness.exe');
+    fs.mkdirSync(path.dirname(bundled), { recursive: true });
+    fs.writeFileSync(bundled, '');
+    assert.equal(getDefaultHarnessBinaryPath({ cwd: dir, env: {}, includePathFallback: false }), bundled);
+
+    fs.rmSync(path.join(dir, 'vendor'), { recursive: true, force: true });
+    const dev = path.join(dir, 'node_modules', 'google-antigravity', 'google', 'antigravity', 'bin', 'localharness.exe');
+    fs.mkdirSync(path.dirname(dev), { recursive: true });
+    fs.writeFileSync(dev, '');
+    assert.equal(getDefaultHarnessBinaryPath({ cwd: dir, env: {}, includePathFallback: false }), dev);
+  } finally {
+    if (platformDescriptor) {
+      Object.defineProperty(process, 'platform', platformDescriptor);
+    }
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('bundled localharness is resolved from platform vendor directory', { skip: !hasBundledHarnessRuntime() }, () => {
+  const binaryPath = getBundledHarnessBinaryPath();
+  const expectedBinary = getHarnessBinaryName();
+  assert.equal(path.basename(binaryPath), expectedBinary);
+  assert.equal(path.basename(path.dirname(binaryPath)), getCurrentPlatformKey());
+  assert.equal(path.basename(path.dirname(path.dirname(binaryPath))), 'localharness');
+  assert.equal(path.basename(path.dirname(path.dirname(path.dirname(binaryPath)))), 'vendor');
+  assert.ok(fs.existsSync(binaryPath));
+  if (process.platform !== 'win32') {
+    assert.ok((fs.statSync(binaryPath).mode & 0o111) !== 0);
+  }
+  assert.equal(getDefaultHarnessBinaryPath({ env: {}, includePathFallback: false }), binaryPath);
+});
+
+test('bundled localharness can be invoked as a CLI binary', { skip: !hasBundledHarnessRuntime() }, () => {
   const result = spawnSync(getDefaultHarnessBinaryPath(), ['--help'], { encoding: 'utf8' });
   assert.equal(result.status, 0);
   assert.match(`${result.stdout}${result.stderr}`, /Usage of/);

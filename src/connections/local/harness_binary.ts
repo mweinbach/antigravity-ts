@@ -14,12 +14,19 @@ const SUPPORTED_ARCHES: Partial<Record<NodeJS.Architecture, string>> = {
   x64: 'x64'
 };
 
-export function getCurrentPlatformKey(): string {
-  const arch = SUPPORTED_ARCHES[process.arch];
+export function getPlatformKey(
+  platform: NodeJS.Platform = process.platform,
+  architecture: NodeJS.Architecture = process.arch
+): string {
+  const arch = SUPPORTED_ARCHES[architecture];
   if (!arch) {
-    throw new Error(`Unsupported architecture for localharness: ${process.arch}`);
+    throw new Error(`Unsupported architecture for localharness: ${architecture}`);
   }
-  return `${process.platform}-${arch}`;
+  return `${platform}-${arch}`;
+}
+
+export function getCurrentPlatformKey(): string {
+  return getPlatformKey();
 }
 
 export function getHarnessBinaryName(platform: NodeJS.Platform = process.platform): string {
@@ -84,14 +91,14 @@ function bundledCandidates(cwd: string, platform: string, binary: string): strin
   return candidates;
 }
 
-function devCandidates(cwd: string): string[] {
+function devCandidates(cwd: string, binary: string): string[] {
   const candidates = [
-    path.resolve(cwd, 'scratch/python-sdk/antigravity/bin/localharness'),
-    path.resolve(cwd, 'node_modules/google-antigravity/google/antigravity/bin/localharness')
+    path.resolve(cwd, 'scratch/python-sdk/antigravity/bin', binary),
+    path.resolve(cwd, 'node_modules/google-antigravity/google/antigravity/bin', binary)
   ];
   const root = moduleRoot();
   if (root) {
-    candidates.push(path.resolve(root, 'scratch/python-sdk/antigravity/bin/localharness'));
+    candidates.push(path.resolve(root, 'scratch/python-sdk/antigravity/bin', binary));
   }
   return candidates;
 }
@@ -127,7 +134,7 @@ export function getDefaultHarnessBinaryPath(options: HarnessBinaryOptions = {}):
   const candidates = bundledCandidates(cwd, platform, binary);
 
   if (options.includeDevFallbacks !== false) {
-    candidates.push(...devCandidates(cwd));
+    candidates.push(...devCandidates(cwd, binary));
   }
 
   const resolved = firstExisting(candidates);

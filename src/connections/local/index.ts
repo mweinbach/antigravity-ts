@@ -19,5 +19,6 @@ export {
   getBundledHarnessBinaryPath,
   getCurrentPlatformKey,
   getDefaultHarnessBinaryPath,
-  getHarnessBinaryName
+  getHarnessBinaryName,
+  getPlatformKey
 } from './harness_binary.js';

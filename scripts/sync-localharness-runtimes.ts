@@ -1,14 +1,14 @@
 #!/usr/bin/env tsx
-import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { inflateRawSync } from 'node:zlib';
 
 const PYPI_PACKAGE = 'google-antigravity';
 const DEFAULT_VERSION = '0.1.0';
-const WHEEL_BINARY_PATH = 'google/antigravity/bin/localharness';
+const WHEEL_BINARY_DIR = 'google/antigravity/bin';
 
 interface PyPiFile {
   filename: string;
@@ -31,12 +31,6 @@ interface WheelPlatformPattern {
 
 interface SupportedWheel extends PyPiFile {
   platforms: string[];
-}
-
-interface SpawnResult {
-  status: number | null;
-  stdout: string;
-  stderr: string;
 }
 
 interface RuntimeManifest {
@@ -90,39 +84,82 @@ async function download(url: string, destination: string): Promise<Buffer> {
   return bytes;
 }
 
-function spawnForOutput(command: string, args: string[]): Promise<SpawnResult> {
-  const chunks = { stdout: '', stderr: '' };
-  const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
-  return new Promise((resolve) => {
-    child.stdout?.on('data', (data: Buffer) => {
-      chunks.stdout += data.toString('utf8');
-    });
-    child.stderr?.on('data', (data: Buffer) => {
-      chunks.stderr += data.toString('utf8');
-    });
-    child.on('close', (status) => {
-      resolve({ status, ...chunks });
-    });
-  });
+function readZipEntry(zip: Buffer, member: string): Buffer {
+  const eocdSignature = 0x06054b50;
+  const centralSignature = 0x02014b50;
+  const localSignature = 0x04034b50;
+  const maxCommentLength = 0xffff;
+  const minEocdSize = 22;
+  const start = Math.max(0, zip.length - minEocdSize - maxCommentLength);
+
+  let eocdOffset = -1;
+  for (let offset = zip.length - minEocdSize; offset >= start; offset--) {
+    if (zip.readUInt32LE(offset) === eocdSignature) {
+      eocdOffset = offset;
+      break;
+    }
+  }
+  if (eocdOffset === -1) {
+    throw new Error('Could not find ZIP central directory.');
+  }
+
+  const entryCount = zip.readUInt16LE(eocdOffset + 10);
+  let centralOffset = zip.readUInt32LE(eocdOffset + 16);
+
+  for (let i = 0; i < entryCount; i++) {
+    if (zip.readUInt32LE(centralOffset) !== centralSignature) {
+      throw new Error('Invalid ZIP central directory entry.');
+    }
+
+    const compressionMethod = zip.readUInt16LE(centralOffset + 10);
+    const compressedSize = zip.readUInt32LE(centralOffset + 20);
+    const uncompressedSize = zip.readUInt32LE(centralOffset + 24);
+    const fileNameLength = zip.readUInt16LE(centralOffset + 28);
+    const extraLength = zip.readUInt16LE(centralOffset + 30);
+    const commentLength = zip.readUInt16LE(centralOffset + 32);
+    const localHeaderOffset = zip.readUInt32LE(centralOffset + 42);
+    const fileName = zip.toString('utf8', centralOffset + 46, centralOffset + 46 + fileNameLength);
+
+    if (fileName === member) {
+      if (zip.readUInt32LE(localHeaderOffset) !== localSignature) {
+        throw new Error(`Invalid local ZIP header for ${member}.`);
+      }
+      const localNameLength = zip.readUInt16LE(localHeaderOffset + 26);
+      const localExtraLength = zip.readUInt16LE(localHeaderOffset + 28);
+      const dataOffset = localHeaderOffset + 30 + localNameLength + localExtraLength;
+      const compressed = zip.subarray(dataOffset, dataOffset + compressedSize);
+
+      if (compressionMethod === 0) {
+        return Buffer.from(compressed);
+      }
+      if (compressionMethod === 8) {
+        const inflated = inflateRawSync(compressed);
+        if (inflated.length !== uncompressedSize) {
+          throw new Error(`Unexpected extracted size for ${member}: expected ${uncompressedSize}, got ${inflated.length}`);
+        }
+        return inflated;
+      }
+      throw new Error(`Unsupported ZIP compression method ${compressionMethod} for ${member}.`);
+    }
+
+    centralOffset += 46 + fileNameLength + extraLength + commentLength;
+  }
+
+  throw new Error(`Could not find ${member} in wheel.`);
 }
 
-async function extractWheel(wheelPath: string, destination: string): Promise<void> {
-  const script = [
-    'import pathlib, stat, sys, zipfile',
-    'wheel = pathlib.Path(sys.argv[1])',
-    'dest = pathlib.Path(sys.argv[2])',
-    'dest.parent.mkdir(parents=True, exist_ok=True)',
-    `member = ${JSON.stringify(WHEEL_BINARY_PATH)}`,
-    'with zipfile.ZipFile(wheel) as zf:',
-    '    data = zf.read(member)',
-    'dest.write_bytes(data)',
-    'dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)',
-    ''
-  ].join('\n');
+function wheelBinaryMember(platform: string): string {
+  const binaryName = platform.startsWith('win32-') ? 'localharness.exe' : 'localharness';
+  return `${WHEEL_BINARY_DIR}/${binaryName}`;
+}
 
-  const child = await spawnForOutput('python3', ['-c', script, wheelPath, destination]);
-  if (child.status !== 0) {
-    throw new Error(`python3 extraction failed for ${wheelPath}:\n${child.stderr || child.stdout}`);
+async function extractWheel(wheelPath: string, platform: string, destination: string): Promise<void> {
+  const zip = await readFile(wheelPath);
+  const data = readZipEntry(zip, wheelBinaryMember(platform));
+  await mkdir(path.dirname(destination), { recursive: true });
+  await writeFile(destination, data);
+  if (!platform.startsWith('win32-')) {
+    await chmod(destination, 0o755);
   }
 }
 
@@ -161,7 +198,7 @@ async function main(): Promise<void> {
         const platformDir = path.join(outDir, platform);
         const binaryName = platform.startsWith('win32-') ? 'localharness.exe' : 'localharness';
         const binaryPath = path.join(platformDir, binaryName);
-        await extractWheel(wheelPath, binaryPath);
+        await extractWheel(wheelPath, platform, binaryPath);
 
         manifest.runtimes[platform] = {
           filename: wheel.filename,

@@ -12,6 +12,15 @@ Currently available upstream runtimes:
 - `linux-arm64`
 - `linux-x64`
 
+The resolver also supports Windows runtime layouts when upstream publishes
+matching wheels or when you provide your own binary:
+
+- `win32-arm64` (`localharness.exe`)
+- `win32-x64` (`localharness.exe`)
+
+Until Google publishes Windows `google-antigravity` wheels, Windows users can
+set `ANTIGRAVITY_HARNESS_PATH` to a compatible `localharness.exe`.
+
 Refresh bundled runtimes with:
 
 ```sh
